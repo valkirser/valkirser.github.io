@@ -1,9 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,400;0,700;1,100;1,400;1,700&display=swap');
 
 :root {
-    --primary: #4570ff;
-    --primary-hover: #ffc400;
-    --accent: #ffc400;
+    --primary: #bbbbbb;
+    --primary-hover: #ffffff;
+    --accent: #ffffff;
     --text: whitesmoke;
     --text-muted: #666;
     --text-light: #444;
@@ -21,7 +21,6 @@
 html, body {
     background-color: var(--bg);
     font-family: 'IBM Plex Mono', monospace;
-    text-transform: uppercase;
     letter-spacing: -0.02em;
     line-height: 1.1;
     -webkit-font-smoothing: antialiased;
@@ -86,7 +85,6 @@ header {
     font-size: 10px;
     font-family: 'IBM Plex Mono', monospace;
     letter-spacing: -0.02em;
-    text-transform: uppercase;
     outline: none;
     height: 30px;
     width: 180px;
@@ -105,7 +103,6 @@ header {
     font-size: 10px;
     font-family: 'IBM Plex Mono', monospace;
     letter-spacing: -0.02em;
-    text-transform: uppercase;
     cursor: pointer;
     outline: none;
     height: 30px;
@@ -174,7 +171,6 @@ details summary {
     font-size: 0.62rem;
     font-weight: 700;
     letter-spacing: 0.1em;
-    text-transform: uppercase;
     color: var(--text-muted);
     font-family: 'IBM Plex Mono', monospace;
     cursor: pointer;
@@ -256,7 +252,6 @@ details[open] summary::before { content: '- '; color: var(--accent); }
     font-weight: 400;
     font-size: 10px;
     letter-spacing: 0.06em;
-    text-transform: uppercase;
     text-align: center;
     font-family: 'IBM Plex Mono', monospace;
     transition: color 0.15s;
@@ -306,7 +301,6 @@ details[open] summary::before { content: '- '; color: var(--accent); }
     font-size: 0.65rem;
     font-weight: 700;
     letter-spacing: 0.08em;
-    text-transform: uppercase;
     font-family: 'IBM Plex Mono', monospace;
     margin: 0;
     line-height: 1;
@@ -320,7 +314,6 @@ details[open] summary::before { content: '- '; color: var(--accent); }
     color: var(--primary);
     font-family: 'IBM Plex Mono', monospace;
     letter-spacing: -0.01em;
-    text-transform: uppercase;
 }
 
 #zoneAuthor:hover { color: var(--accent); }
@@ -359,7 +352,6 @@ details[open] summary::before { content: '- '; color: var(--accent); }
     font-size: 10px;
     font-family: 'IBM Plex Mono', monospace;
     letter-spacing: -0.01em;
-    text-transform: uppercase;
     font-weight: 400;
     transition: color 0.15s, background 0.15s;
 }
@@ -407,7 +399,6 @@ details[open] summary::before { content: '- '; color: var(--accent); }
     font-size: 0.65rem;
     font-weight: 700;
     letter-spacing: 0.08em;
-    text-transform: uppercase;
     font-family: 'IBM Plex Mono', monospace;
 }
 
@@ -438,7 +429,6 @@ details[open] summary::before { content: '- '; color: var(--accent); }
     font-size: 11px;
     line-height: 1.6;
     font-family: 'IBM Plex Mono', monospace;
-    text-transform: uppercase;
     letter-spacing: -0.01em;
 }
 
@@ -453,7 +443,6 @@ details[open] summary::before { content: '- '; color: var(--accent); }
     font-size: 11px;
     font-family: 'IBM Plex Mono', monospace;
     letter-spacing: -0.01em;
-    text-transform: uppercase;
     outline: none;
     transition: border-color 0.15s;
 }
@@ -474,7 +463,6 @@ details[open] summary::before { content: '- '; color: var(--accent); }
     font-weight: 700;
     font-family: 'IBM Plex Mono', monospace;
     letter-spacing: 0.05em;
-    text-transform: uppercase;
     cursor: pointer;
     transition: background 0.15s;
     min-width: 200px;
@@ -510,7 +498,6 @@ footer {
     font-size: 9px;
     font-family: 'IBM Plex Mono', monospace;
     letter-spacing: 0.05em;
-    text-transform: uppercase;
     transition: color 0.15s;
     padding: 0.3rem 0.9rem;
     border-right: 1px solid var(--border);

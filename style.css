@@ -1,9 +1,6 @@
 html, body {
     background-color: #1d1d1d;
     font-family: 'IBM Plex Mono', monospace;
-    text-transform: uppercase;
-    letter-spacing: -0.02em; 
-    line-height: 1.1;
     -webkit-font-smoothing: antialiased;
     color: whitesmoke;
 }
@@ -11,7 +8,6 @@ html, body {
 a, button {
     color: #bbbbbb;
     transition: color 0.3s ease-in-out;
-    text-transform: uppercase;
     text-decoration: none;
     cursor: pointer;
 }
@@ -22,7 +18,6 @@ button {
     padding: 0;
     font-size: inherit;
     line-height: inherit;
-    letter-spacing: inherit;
     font-family: 'IBM Plex Mono', monospace;
 }
 
@@ -30,67 +25,19 @@ a:hover, button:hover {
     color: #ffffff;
 }
 
+.title-sub h1 {
+    margin-bottom: 0;
+}
+
+.title-sub h2 {
+    margin-top: 0;
+}
+
+.list {
+    line-height: 25px;
+}
+
 .content {
     text-align: center;
     position: relative;
-}
-
-.cheats-container {
-    text-align: left;
-    position: absolute;
-    left: 10px;
-}
-
-.cheat-scroll-box {
-    display: none;
-    max-height: 50vh;
-    overflow-y: auto;
-    border: 1px solid #444;
-    padding: 10px;
-}
-
-#cheat-list {
-    list-style-type: disc;
-    margin: 0;
-    padding-left: 20px;
-    color: #fff;
-    font-size: 12px;
-}
-
-#cheat-list li {
-    margin-bottom: 8px;
-}
-
-.game-wrapper {
-    margin: 0 auto;
-    max-width: 800px;
-    width: 100%;
-}
-
-#full-iframe {
-    width: 100%;
-    aspect-ratio: 4 / 3;
-}
-
-.footer-content {
-
-    text-align: center;
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-}
-
-@media screen and (max-width: 1700px) {
-    .cheats-container {
-        position: static;
-        text-align: center;
-        margin-bottom: 20px;
-        pointer-events: auto;
-    }
-    
-    .cheat-scroll-box {
-        margin: 10px auto;
-        width: 90%;
-        max-width: 500px;
-    }
 }
