@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070b12">
+<title>GN-MATH Player</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="player-page player-entering">
+<div class="player-shell">
+  <header class="player-bar">
+    <button class="back-button" id="backButton" type="button" aria-label="Back to game library"><span class="back-arrow">←</span><span>LIBRARY</span></button>
+    <div class="game-heading"><span class="eyebrow">NOW PLAYING</span><h1 id="gameName">Loading game…</h1><p id="gameAuthor">GN-MATH · HTML5 PLAYER</p></div>
+    <div class="controls">
+      <button class="icon-button" id="reloadButton" type="button" title="Reload game" aria-label="Reload game">↻</button>
+      <button class="icon-button" id="fullscreenButton" type="button" title="Fullscreen" aria-label="Fullscreen">⛶</button>
+      <button class="icon-button" id="newTabButton" type="button" title="Open game in a new tab" aria-label="Open game in a new tab">↗</button>
+    </div>
+  </header>
+  <main class="stage" id="stage">
+    <div class="stage-grid" aria-hidden="true"></div>
+    <div class="frame-wrap" id="frameWrap">
+      <iframe id="gameFrame" title="Game" tabindex="0" allow="autoplay; fullscreen; gamepad; pointer-lock; clipboard-read; clipboard-write; accelerometer; gyroscope; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+      <div class="frame-loading" id="frameLoading"><div class="loading-mark"><span></span><span></span><span></span></div><strong>Launching your game</strong><small id="loadingDetail">Connecting to the game server…</small></div>
+    </div>
+    <section class="error-card" id="errorCard" hidden><div class="error-icon">!</div><p class="eyebrow">PLAYER COULD NOT START</p><h2 id="errorTitle">Game not found</h2><p id="errorMessage">Return to the library and choose a game to play.</p><button class="primary-button" id="errorBackButton" type="button">← Back to library</button></section>
+  </main>
+  <footer class="player-footer"><span><i class="live-dot"></i><span id="connectionStatus">PLAYER READY</span></span><span id="gameIdLabel">GN-MATH / —</span><span class="footer-tip">Use <b>⛶</b> for fullscreen</span></footer>
+</div>
+<script src="script.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+

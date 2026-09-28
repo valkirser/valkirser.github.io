@@ -1,831 +1,698 @@
-const container = document.getElementById('container');
-const zoneViewer = document.getElementById('zoneViewer');
-let zoneFrame = document.getElementById('zoneFrame');
-const searchBar = document.getElementById('searchBar');
-const sortOptions = document.getElementById('sortOptions');
-const filterOptions = document.getElementById('filterOptions');
-// https://www.jsdelivr.com/tools/purge
-const zonesurls = [
-    "https://cdn.jsdelivr.net/gh/freebuisness/assets@main/zones.json",
-    "https://cdn.jsdelivr.net/gh/freebuisness/assets@latest/zones.json",
-    "https://cdn.jsdelivr.net/gh/freebuisness/assets@master/zones.json",
-    "https://cdn.jsdelivr.net/gh/freebuisness/assets/zones.json"
-];
-let zonesURL = zonesurls[Math.floor(Math.random() * zonesurls.length)];
-const coverURL = "https://cdn.jsdelivr.net/gh/freebuisness/covers@main";
-const htmlURL = "https://cdn.jsdelivr.net/gh/freebuisness/html@main";
-let zones = [];
-let popularityData = {};
-const featuredContainer = document.getElementById('featuredZones');
-function toTitleCase(str) {
-  return str.replace(
-    /\w\S*/g,
-    text => text.charAt(0).toUpperCase() + text.substring(1).toLowerCase()
-  );
+if(document.getElementById('c')){
+(function(){
+var ZONES_URL = "https://raw.githubusercontent.com/freebuisness/assets/main/zones.json";
+var COVER_BASE = "https://raw.githubusercontent.com/freebuisness/covers/main";
+
+var canvas=document.getElementById('c'), ctx=canvas.getContext('2d');
+var statusEl=document.getElementById('status');
+var browserNameEl=document.getElementById('browserName');
+var ua=navigator.userAgent;
+browserNameEl.textContent=/Edg\//.test(ua)?'Microsoft Edge':(/OPR\//.test(ua)?'Opera':(/Firefox\//.test(ua)?'Firefox':(/Chrome\//.test(ua)?'Chrome':(/Safari\//.test(ua)?'Safari':'your browser'))));
+var errbox=document.getElementById('errbox');
+var bootCount=document.getElementById('bootCount');
+var bootStage=document.getElementById('bootStage');
+var bootImageList=document.getElementById('bootImageList');
+var bootStartedAt=performance.now();
+var playBtn=document.getElementById('playBtn');
+var filterBtn=document.getElementById('filterBtn');
+var filterPanel=document.getElementById('filterPanel');
+var debugPanel=document.getElementById('debugPanel');
+var debugOpen=false;
+var W,H,DPR,dprCap=1.25;
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,dprCap);
+  W=window.innerWidth; H=window.innerHeight;
+  canvas.width=W*DPR; canvas.height=H*DPR;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
 }
-async function listZones() {
-    try {
-      let sharesponse;
-      let shajson;
-      let sha;
-        try {
-          sharesponse = await fetch("https://api.github.com/repos/freebuisness/assets/commits?t="+Date.now());
-        } catch (error) {}
-        if (sharesponse && sharesponse.status === 200) {
-          try {
-            shajson = await sharesponse.json();
-            sha = shajson[0]['sha'];
-            if (sha) {
-                zonesURL = `https://cdn.jsdelivr.net/gh/freebuisness/assets@${sha}/zones.json`;
-            }
-          } catch (error) {
-            try {
-                let secondarysharesponse = await fetch("https://raw.githubusercontent.com/freebuisness/xml/refs/heads/main/sha.txt?t="+Date.now());
-                if (secondarysharesponse && secondarysharesponse.status === 200) {
-                    sha = (await secondarysharesponse.text()).trim();
-                    if (sha) {
-                        zonesURL = `https://cdn.jsdelivr.net/gh/freebuisness/assets@${sha}/zones.json`;
-                    }
-                }
-            } catch(error) {}
-          }
-        }
-        const response = await fetch(zonesURL+"?t="+Date.now());
-        const json = await response.json();
-        zones = json;
-        zones[0].featured = true; // always gonna be the discord
-        await Promise.all([fetchPopularity("year"), fetchPopularity("month"), fetchPopularity("week"), fetchPopularity("day")]);
-        sortZones();
-        try {
-        const search = new URLSearchParams(window.location.search);
-        const id = search.get('id');
-        const embed = window.location.hash.includes("embed");
-        if (id) {
-            const zone = zones.find(zone => zone.id + '' == id + '');
-            if (zone) {
-                if (embed) {
-                    if (zone.url.startsWith("http")) {
-                        window.open(zone.url, "_blank");
-                    } else {
-                        const url = zone.url.replace("{COVER_URL}", coverURL).replace("{HTML_URL}", htmlURL);
-                        fetch(url+"?t="+Date.now()).then(response => response.text()).then(html => {
-                            document.documentElement.innerHTML = html;
-                            const popup = document.createElement("div");
-                            popup.style.position = "fixed";
-                            popup.style.bottom = "20px";
-                            popup.style.right = "20px";
-                            popup.style.backgroundColor = "#cce5ff";
-                            popup.style.color = "#004085";
-                            popup.style.padding = "10px";
-                            popup.style.border = "1px solid #b8daff";
-                            popup.style.borderRadius = "5px";
-                            popup.style.boxShadow = "0px 0px 10px rgba(0,0,0,0.1)";
-                            popup.style.fontFamily = "Arial, sans-serif";
-                            
-                            popup.innerHTML = `Play more games at <a href="https://gn-math.dev" target="_blank" style="color:#004085; font-weight:bold;">https://gn-math.dev</a>!`;
-                            
-                            const closeBtn = document.createElement("button");
-                            closeBtn.innerText = "?";
-                            closeBtn.style.marginLeft = "10px";
-                            closeBtn.style.background = "none";
-                            closeBtn.style.border = "none";
-                            closeBtn.style.cursor = "pointer";
-                            closeBtn.style.color = "#004085";
-                            closeBtn.style.fontWeight = "bold";
-                            
-                            closeBtn.onclick = () => popup.remove();
-                            popup.appendChild(closeBtn);
-                            document.body.appendChild(popup);
-                            document.documentElement.querySelectorAll('script').forEach(oldScript => {
-                                const newScript = document.createElement('script');
-                                if (oldScript.src) {
-                                    newScript.src = oldScript.src;
-                                } else {
-                                    newScript.textContent = oldScript.textContent;
-                                }
-                                document.body.appendChild(newScript);
-                            });
-                        }).catch(error => alert("Failed to load zone: " + error));
-                    }
-                } else {
-                    openZone(zone);
-                }
-            }
-        }
-        } catch(error){}
-        let alltags = [];
-        for (const obj of json) {
-            if (Array.isArray(obj.special)) {
-                alltags.push(...obj.special);
-            }
-        }
+window.addEventListener('resize', resize);
+resize();
+canvas.style.pointerEvents='none';
 
-        alltags = [...new Set(alltags)];
-        let filteroption = document.getElementById("filterOptions");
-        if (filteroption && filteroption.children.length > 1) {
-            while (filteroption.children.length > 1) {
-                filteroption.removeChild(filteroption.lastElementChild);
-            }
-        }
-        for (const tag of alltags) {
-            const opt = document.createElement("option");
-            opt.value = tag;
-            opt.textContent = toTitleCase(tag);
-            filteroption.appendChild(opt);
-        }
-    } catch (error) {
-        console.error(error);
-        container.innerHTML = `Error loading zones: ${error}`;
-    }
-}
-async function fetchPopularity(duration) {
-    try {
-        if (!popularityData[duration]) {
-            popularityData[duration] = {};
-        }
-        const response = await fetch(
-            "https://data.jsdelivr.com/v1/stats/packages/gh/freebuisness/html@main/files?period=" + duration
-        );
-        const data = await response.json();
-        data.forEach(file => {
-            const idMatch = file.name.match(/\/(\d+)\.html$/);
-            if (idMatch) {
-                const id = parseInt(idMatch[1]);
-                popularityData[duration][id] = file.hits?.total ?? 0;
-            }
-        });
-    } catch (error) {
-        if (!popularityData[duration]) {
-            popularityData[duration] = {};
-        }
-        popularityData[duration][0] = 0;
-    }
-}
+function rnd(seed){ var x=Math.sin(seed*127.1+311.7)*43758.5453; return x-Math.floor(x); }
 
+var ARMS=7;
+var HUES=[]; for (var hi=0; hi<ARMS; hi++){ HUES.push(190+(hi/ARMS)*170); }
 
-function sortZones() {
-    const sortBy = sortOptions.value;
-    if (sortBy === 'name') {
-        zones.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (sortBy === 'id') {
-        zones.sort((a, b) => a.id - b.id);
-    } else if (sortBy === 'popular') {
-        zones.sort((a, b) => ((popularityData['year']?.[b.id]) ?? 0) - ((popularityData['year']?.[a.id]) ?? 0));
-    } else if (sortBy === 'trendingMonth') {
-        zones.sort((a, b) => ((popularityData['month']?.[b.id]) ?? 0) - ((popularityData['month']?.[a.id]) ?? 0));
-    } else if (sortBy === 'trendingWeek') {
-        zones.sort((a, b) => ((popularityData['week']?.[b.id]) ?? 0) - ((popularityData['week']?.[a.id]) ?? 0));
-    } else if (sortBy === 'trendingDay') {
-        zones.sort((a, b) => ((popularityData['day']?.[b.id]) ?? 0) - ((popularityData['day']?.[a.id]) ?? 0));
-    }
-    zones.sort((a, b) => (a.id === -1 ? -1 : b.id === -1 ? 1 : 0));
-    if (featuredContainer.innerHTML === "") {
-        const featured = zones.filter(z => z.featured);
-        displayFeaturedZones(featured);
-    }
-    displayZones(zones);
-}
-
-function displayFeaturedZones(featuredZones) {
-    featuredContainer.innerHTML = "";
-    featuredZones.forEach((file, index) => {
-        const zoneItem = document.createElement("div");
-        zoneItem.className = "zone-item";
-        zoneItem.onclick = () => openZone(file);
-        const img = document.createElement("img");
-        img.dataset.src = file.cover.replace("{COVER_URL}", coverURL).replace("{HTML_URL}", htmlURL);
-        img.alt = file.name;
-        img.loading = "lazy";
-        img.className = "lazy-zone-img";
-        zoneItem.appendChild(img);
-        const button = document.createElement("button");
-        button.textContent = file.name;
-        button.onclick = (event) => {
-            event.stopPropagation();
-            openZone(file);
-        };
-        zoneItem.appendChild(button);
-        featuredContainer.appendChild(zoneItem);
-    });
-    if (featuredContainer.innerHTML === "") {
-        featuredContainer.innerHTML = "No featured zones found.";
-    } else {
-        document.getElementById("allZonesSummary").textContent = `Featured Zones (${featuredZones.length})`;
-    }
-
-    const lazyImages = document.querySelectorAll('#featuredZones img.lazy-zone-img');
-    const imageObserver = new IntersectionObserver((entries, observer) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting && !zoneViewer.hidden) {
-                const img = entry.target;
-                img.src = img.dataset.src;
-                img.classList.remove("lazy-zone-img");
-                observer.unobserve(img);
-            }
-        });
-    }, {
-        rootMargin: "100px", 
-        threshold: 0.1
-    });
-
-    lazyImages.forEach(img => {
-        imageObserver.observe(img);
-    });
-}
-function displayZones(zones) {
-    container.innerHTML = "";
-    zones.forEach((file, index) => {
-        const zoneItem = document.createElement("div");
-        zoneItem.className = "zone-item";
-        zoneItem.onclick = () => openZone(file);
-        const img = document.createElement("img");
-        img.dataset.src = file.cover.replace("{COVER_URL}", coverURL).replace("{HTML_URL}", htmlURL);
-        img.alt = file.name;
-        img.loading = "lazy";
-        img.className = "lazy-zone-img";
-        zoneItem.appendChild(img);
-        const button = document.createElement("button");
-        button.textContent = file.name;
-        button.onclick = (event) => {
-            event.stopPropagation();
-            openZone(file);
-        };
-        zoneItem.appendChild(button);
-        container.appendChild(zoneItem);   
-    });
-    if (container.innerHTML === "") {
-        container.innerHTML = "No zones found.";
-    } else {
-        document.getElementById("allSummary").textContent = `All Zones (${zones.length})`;
-    }
-
-    const lazyImages = document.querySelectorAll('img.lazy-zone-img');
-    const imageObserver = new IntersectionObserver((entries, observer) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting && !zoneViewer.hidden) {
-                const img = entry.target;
-                img.src = img.dataset.src;
-                img.classList.remove("lazy-zone-img");
-                observer.unobserve(img);
-            }
-        });
-    }, {
-        rootMargin: "100px", 
-        threshold: 0.1
-    });
-
-    lazyImages.forEach(img => {
-        imageObserver.observe(img);
-    });
-}
-
-function filterZones2() {
-    const query = filterOptions.value;
-    if (query === "none") {
-        displayZones(zones);
-    } else {
-        const filteredZones = zones.filter(zone => zone.special?.includes(query));
-        if (query.length !== 0) {
-            document.getElementById("featuredZonesWrapper").removeAttribute("open");
-        }
-        displayZones(filteredZones);
-    }
-}
-
-function filterZones() {
-    const query = searchBar.value.toLowerCase();
-    const filteredZones = zones.filter(zone => zone.name.toLowerCase().includes(query));
-    if (query.length !== 0) {
-        document.getElementById("featuredZonesWrapper").removeAttribute("open");
-    }
-    displayZones(filteredZones);
-}
-
-function openZone(file) {
-    if (file.url.startsWith("http")) {
-        window.open(file.url, "_blank");
-    } else {
-        const url = file.url.replace("{COVER_URL}", coverURL).replace("{HTML_URL}", htmlURL);
-        fetch(url+"?t="+Date.now()).then(response => response.text()).then(html => {
-            if (zoneFrame.contentDocument === null) {
-                zoneFrame = document.createElement("iframe");
-                zoneFrame.id = "zoneFrame";
-                zoneViewer.appendChild(zoneFrame);
-            }
-            zoneFrame.contentDocument.open();
-            zoneFrame.contentDocument.write(html);
-            zoneFrame.contentDocument.close();
-            document.getElementById('zoneName').textContent = file.name;
-            document.getElementById('zoneId').textContent = file.id;
-            document.getElementById('zoneAuthor').textContent = "by " + file.author;
-            if (file.authorLink) {
-                document.getElementById('zoneAuthor').href = file.authorLink;
-            }
-            zoneViewer.style.display = "block";
-            try {
-                const url = new URL(window.location);
-                url.searchParams.set('id', file.id);
-                history.pushState(null, '', url.toString());
-            } catch(error){}
-            zoneViewer.hidden = true;
-        }).catch(error => alert("Failed to load zone: " + error));
-    }
-}
-
-function aboutBlank() {
-    const newWindow = window.open("about:blank", "_blank");
-    let zone = zones.find(zone => zone.id + '' === document.getElementById('zoneId').textContent).url.replace("{COVER_URL}", coverURL).replace("{HTML_URL}", htmlURL);
-    fetch(zone+"?t="+Date.now()).then(response => response.text()).then(html => {
-        if (newWindow) {
-            newWindow.document.open();
-            newWindow.document.write(html);
-            newWindow.document.close();
-        }
-    })
-}
-
-function closeZone() {
-    zoneViewer.hidden = false;
-    zoneViewer.style.display = "none";
-    zoneViewer.removeChild(zoneFrame);
-    try {
-    const url = new URL(window.location);
-    url.searchParams.delete('id');
-    history.pushState(null, '', url.toString());
-    } catch(error){}
-}
-
-function downloadZone() {
-    let zone = zones.find(zone => zone.id + '' === document.getElementById('zoneId').textContent);
-    fetch(zone.url.replace("{HTML_URL}", htmlURL)+"?t="+Date.now()).then(res => res.text()).then(text => {
-        const blob = new Blob([text], {
-            type: "text/plain;charset=utf-8"
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = zone.name + ".html";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    });
-}
-
-function fullscreenZone() {
-    if (zoneFrame.requestFullscreen) {
-        zoneFrame.requestFullscreen();
-    } else if (zoneFrame.mozRequestFullScreen) {
-        zoneFrame.mozRequestFullScreen();
-    } else if (zoneFrame.webkitRequestFullscreen) {
-        zoneFrame.webkitRequestFullscreen();
-    } else if (zoneFrame.msRequestFullscreen) {
-        zoneFrame.msRequestFullscreen();
-    }
-}
-
-function sanitizeData(obj, maxStringLen = 1000, maxArrayLen = 10000) {
-    if (typeof obj === 'string') {
-      return obj.length > maxStringLen ? obj.slice(0, maxStringLen) + '...[truncated]' : obj;
-    }
-    
-    if (obj instanceof Uint8Array) {
-      if (obj.length > maxArrayLen) {
-        return `[Uint8Array too large (${obj.length} bytes), truncated]`;
-      }
-      return obj;
-    }
-    
-    if (Array.isArray(obj)) {
-      return obj.map(item => sanitizeData(item, maxStringLen, maxArrayLen));
-    }
-    
-    if (obj && typeof obj === 'object') {
-      const newObj = {};
-      for (const key in obj) {
-        if (obj.hasOwnProperty(key)) {
-          newObj[key] = sanitizeData(obj[key], maxStringLen, maxArrayLen);
-        }
-      }
-      return newObj;
-    }
-    
-    return obj;
-  }
-
-async function saveData() {
-    alert("This might take a while, dont touch anything other than this OK button");
-    const result = {};
-    result.cookies = document.cookie;
-    result.localStorage = {...localStorage};
-    result.sessionStorage = {...sessionStorage};
-    result.indexedDB = {};
-    const dbs = await indexedDB.databases();
-    for (const dbInfo of dbs) {
-      if (!dbInfo.name) continue;
-      result.indexedDB[dbInfo.name] = {};
-      await new Promise((resolve, reject) => {
-        const openRequest = indexedDB.open(dbInfo.name, dbInfo.version);
-        openRequest.onerror = () => reject(openRequest.error);
-        openRequest.onsuccess = () => {
-          const db = openRequest.result;
-          const storeNames = Array.from(db.objectStoreNames);
-          if (storeNames.length === 0) {
-            resolve();
-            return;
-          }
-          const transaction = db.transaction(storeNames, "readonly");
-          const storePromises = [];
-          for (const storeName of storeNames) {
-            result.indexedDB[dbInfo.name][storeName] = [];
-            const store = transaction.objectStore(storeName);
-            const getAllRequest = store.getAll();
-            const p = new Promise((res, rej) => {
-              getAllRequest.onsuccess = () => {
-                result.indexedDB[dbInfo.name][storeName] = sanitizeData(getAllRequest.result, 1000, 100);
-                res();
-              };
-              getAllRequest.onerror = () => rej(getAllRequest.error);
-            });
-            storePromises.push(p);
-          }
-          Promise.all(storePromises).then(() => resolve());
-        };
-      });
-    }
-
-    result.caches = {};
-    const cacheNames = await caches.keys();
-    for (const cacheName of cacheNames) {
-      const cache = await caches.open(cacheName);
-      const requests = await cache.keys();
-      result.caches[cacheName] = [];
-      for (const req of requests) {
-        const response = await cache.match(req);
-        if (!response) continue;
-        const cloned = response.clone();
-        const contentType = cloned.headers.get('content-type') || '';
-        let body;
-        try {
-          if (contentType.includes('application/json')) {
-            body = await cloned.json();
-          } else if (contentType.includes('text') || contentType.includes('javascript')) {
-            body = await cloned.text();
-          } else {
-            const buffer = await cloned.arrayBuffer();
-            body = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-          }
-        } catch (e) {
-          body = '[Unable to read body]';
-        }
-        result.caches[cacheName].push({
-          url: req.url,
-          body,
-          contentType
-        });
-      }
-    }
-  
-    alert("Done, wait for the download to come");
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(new Blob([JSON.stringify(result)], {
-        type: "application/octet-stream"
-    }));
-    link.download = `${Date.now()}.data`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-  
-  async function loadData(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async function (e) {
-        const data = JSON.parse(e.target.result);
-        if (data.cookies) {
-            data.cookies.split(';').forEach(cookie => {
-              document.cookie = cookie.trim();
-            });
-          }
-        
-          if (data.localStorage) {
-            for (const key in data.localStorage) {
-              localStorage.setItem(key, data.localStorage[key]);
-            }
-          }
-        
-          if (data.sessionStorage) {
-            for (const key in data.sessionStorage) {
-              sessionStorage.setItem(key, data.sessionStorage[key]);
-            }
-          }
-        
-          if (data.indexedDB) {
-            for (const dbName in data.indexedDB) {
-              const stores = data.indexedDB[dbName];
-              await new Promise((resolve, reject) => {
-                const request = indexedDB.open(dbName, 1);
-                request.onupgradeneeded = e => {
-                  const db = e.target.result;
-                  for (const storeName in stores) {
-                    if (!db.objectStoreNames.contains(storeName)) {
-                      db.createObjectStore(storeName, { keyPath: 'id', autoIncrement: true });
-                    }
-                  }
-                };
-                request.onsuccess = e => {
-                  const db = e.target.result;
-                  const transaction = db.transaction(Object.keys(stores), 'readwrite');
-                  transaction.onerror = () => reject(transaction.error);
-                  let pendingStores = Object.keys(stores).length;
-        
-                  for (const storeName in stores) {
-                    const objectStore = transaction.objectStore(storeName);
-                    objectStore.clear().onsuccess = () => {
-                      for (const item of stores[storeName]) {
-                        objectStore.put(item);
-                      }
-                      pendingStores--;
-                      if (pendingStores === 0) resolve();
-                    };
-                  }
-                };
-                request.onerror = () => reject(request.error);
-              });
-            }
-          }
-        
-          if (data.caches) {
-            for (const cacheName in data.caches) {
-              const cache = await caches.open(cacheName);
-              await cache.keys().then(keys => Promise.all(keys.map(k => cache.delete(k)))); // clear existing
-        
-              for (const entry of data.caches[cacheName]) {
-                let responseBody;
-                if (entry.contentType.includes('application/json')) {
-                  responseBody = JSON.stringify(entry.body);
-                } else if (entry.contentType.includes('text') || entry.contentType.includes('javascript')) {
-                  responseBody = entry.body;
-                } else {
-                  const binaryStr = atob(entry.body);
-                  const len = binaryStr.length;
-                  const bytes = new Uint8Array(len);
-                  for (let i = 0; i < len; i++) {
-                    bytes[i] = binaryStr.charCodeAt(i);
-                  }
-                  responseBody = bytes.buffer;
-                }
-                const headers = new Headers({ 'content-type': entry.contentType });
-                const response = new Response(responseBody, { headers });
-                await cache.put(entry.url, response);
-              }
-            }
-          }
-        alert("Data loaded");
-    };
-    alert("This might take a while, dont touch anything other than this OK button");
-    reader.readAsText(file);
-  }
-
-function darkMode() {
-    document.body.classList.toggle("dark-mode");
-}
-
-function cloakIcon(url) {
-    const link = document.querySelector("link[rel~='icon']");
-    link.rel = "icon";
-    if ((url+"").trim().length === 0) {
-        link.href = "favicon.png";
-    } else {
-        link.href = url;
-    }
-    document.head.appendChild(link);
-}
-function cloakName(string) {
-    if ((string+"").trim().length === 0) {
-        document.title = "gn-math";
-        return;
-    }
-    document.title = string;
-}
-
-function tabCloak() {
-    closePopup();
-    document.getElementById('popupTitle').textContent = "Tab Cloak";
-    const popupBody = document.getElementById('popupBody');
-    popupBody.innerHTML = `
-        <label for="tab-cloak-textbox" style="font-weight: bold;">Set Tab Title:</label><br>
-        <input type="text" id="tab-cloak-textbox" placeholder="Enter new tab name..." oninput="cloakName(this.value)">
-        <br><br><br><br>
-        <label for="tab-cloak-textbox" style="font-weight: bold;">Set Tab Icon:</label><br>
-        <input type="text" id="tab-cloak-textbox" placeholder="Enter new tab icon..." oninput='cloakIcon(this.value)'>
-        <br><br><br>
-    `;
-    popupBody.contentEditable = false;
-    document.getElementById('popupOverlay').style.display = "flex";
-}
-
-const settings = document.getElementById('settings');
-settings.addEventListener('click', () => {
-    document.getElementById('popupTitle').textContent = "Settings";
-    const popupBody = document.getElementById('popupBody');
-    popupBody.innerHTML = `
-    <button class="settings-button" onclick="darkMode()">Toggle Dark Mode</button>
-    <br><br>
-    <button class="settings-button" onclick="tabCloak()">Tab Cloak</button>
-    <br>
-    `;
-    popupBody.contentEditable = false;
-    document.getElementById('popupOverlay').style.display = "flex";
+var glowSprites=HUES.map(function(hue){
+  var size=200;
+  var c=document.createElement('canvas'); c.width=c.height=size;
+  var g=c.getContext('2d');
+  var grad=g.createRadialGradient(size/2,size/2,0,size/2,size/2,size/2);
+  grad.addColorStop(0,'hsla('+hue+',90%,72%,0.85)');
+  grad.addColorStop(0.28,'hsla('+hue+',85%,66%,0.4)');
+  grad.addColorStop(0.6,'hsla('+hue+',80%,60%,0.14)');
+  grad.addColorStop(1,'hsla('+hue+',80%,55%,0)');
+  g.fillStyle=grad; g.fillRect(0,0,size,size);
+  return c;
 });
 
+var planets=[], galaxyBounds=null, activeBounds=null, fullView=null;
 
-function showContact() {
-    document.getElementById('popupTitle').textContent = "Contact";
-    const popupBody = document.getElementById('popupBody');
-    popupBody.innerHTML = `
-    <p>Discord: https://discord.gg/NAFw4ykZ7n</p>
-    <p>Email: gn.math.business@gmail.com</p>`;
-    popupBody.contentEditable = false;
-    document.getElementById('popupOverlay').style.display = "flex";
-}
-
-function loadPrivacy() {
-    document.getElementById('popupTitle').textContent = "Privacy Policy";
-    const popupBody = document.getElementById('popupBody');
-    popupBody.innerHTML = `
-        <div style="max-height: 60vh; overflow-y: auto;">
-            <h2>PRIVACY POLICY</h2>
-            <p>Last updated Feburary 20, 2026</p>
-            <p>This Privacy Notice for gn-math ("we," "us," or "our"), describes how and why we might access, collect, store, use, and/or share ("process") your personal information when you use our services ("Services"), including when you:</p>
-            <ul>
-                <li>Visit our website at <a href="https://gn-math.dev">https://gn-math.dev</a>, or any website of ours that links to this Privacy Notice</li>
-                <li>Engage with us in other related ways, including any sales, marketing, or events</li>
-            </ul>
-            <p>Questions or concerns? Reading this Privacy Notice will help you understand your privacy rights and choices. We are responsible for making decisions about how your personal information is processed. If you do not agree with our policies and practices, please do not use our Services. If you still have any questions or concerns, please contact us at <a href="https://discord.gg/NAFw4ykZ7n">https://discord.gg/NAFw4ykZ7n</a>.</p>
-            
-            <h3>SUMMARY OF KEY POINTS</h3>
-            <p>This summary provides key points from our Privacy Notice, but you can find out more details about any of these topics by clicking the link following each key point or by using our table of contents below to find the section you are looking for.</p>
-            
-            <p><strong>What personal information do we process?</strong> When you visit, use, or navigate our Services, we may process personal information depending on how you interact with us and the Services, the choices you make, and the products and features you use. Learn more about personal information you disclose to us.</p>
-            
-            <p><strong>Do we process any sensitive personal information?</strong> Some of the information may be considered "special" or "sensitive" in certain jurisdictions, for example your racial or ethnic origins, sexual orientation, and religious beliefs. We do not process sensitive personal information.</p>
-            
-            <p><strong>Do we collect any information from third parties?</strong> We do not collect any information from third parties.</p>
-            
-            <p><strong>How do we process your information?</strong> We process your information to provide, improve, and administer our Services, communicate with you, for security and fraud prevention, and to comply with law. We may also process your information for other purposes with your consent. We process your information only when we have a valid legal reason to do so. Learn more about how we process your information.</p>
-            
-            <p><strong>In what situations and with which parties do we share personal information?</strong> We may share information in specific situations and with specific third parties. Learn more about when and with whom we share your personal information.</p>
-            
-            <p><strong>How do we keep your information safe?</strong> We have adequate organizational and technical processes and procedures in place to protect your personal information. However, no electronic transmission over the internet or information storage technology can be guaranteed to be 100% secure, so we cannot promise or guarantee that hackers, cybercriminals, or other unauthorized third parties will not be able to defeat our security and improperly collect, access, steal, or modify your information. Learn more about how we keep your information safe.</p>
-            
-            <p><strong>What are your rights?</strong> Depending on where you are located geographically, the applicable privacy law may mean you have certain rights regarding your personal information. Learn more about your privacy rights.</p>
-            
-            <p><strong>How do you exercise your rights?</strong> The easiest way to exercise your rights is by submitting a data subject access request, or by contacting us. We will consider and act upon any request in accordance with applicable data protection laws.</p>
-        </div>
-    `;
-    popupBody.contentEditable = false;
-    document.getElementById('popupOverlay').style.display = "flex";
-}
-
-function loadDMCA() {
-    document.getElementById('popupTitle').textContent = "DMCA";
-    const popupBody = document.getElementById('popupBody');
-    popupBody.innerHTML = `
-        <div class="dmca-content">
-            <p>
-                If you own or developed a game that is on <strong>gn-math</strong> 
-                and would like it removed, please do one of the following:
-            </p>
-            <ol>
-                <li>
-                    <a href="https://discord.gg/D4c9VFYWyU" target="_blank" rel="noopener noreferrer">
-                        Join the Discord
-                    </a> and DM <strong>breadbb</strong> or ping me in a public channel 
-                    <strong>[INSTANT RESPONSE]</strong>
-                </li>
-                <li>
-                    Email me at 
-                    <a href="mailto:gn.math.business@gmail.com">gn.math.business@gmail.com</a> 
-                    with the subject starting with <code>!DMCA</code>.
-                    <strong>[DELAYED RESPONSE]</strong>
-                </li>
-            </ol>
-            <p>
-                If you are going to do an email, please show proof you own the game before I have to ask.
-            </p>
-        </div>
-    `;
-    popupBody.contentEditable = false;
-    document.getElementById('popupOverlay').style.display = "flex";
-}
-
-let _allStatsCache = null;
-
-async function getAllStats() {
-  if (_allStatsCache) {
-    return _allStatsCache;
-  }
-
-  const BASE_URL =
-    "https://data.jsdelivr.com/v1/stats/packages/gh/freebuisness/html@main/files";
-  const PERIOD = "year";
-  const PAGE_BATCH = 5;
-
-  let page = 1;
-  let done = false;
-  const combinedMap = Object.create(null);
-
-  while (!done) {
-    const pages = Array.from({ length: PAGE_BATCH }, (_, i) => page + i);
-
-    const responses = await Promise.all(
-      pages.map(p =>
-        fetch(`${BASE_URL}?period=${PERIOD}&page=${p}&limit=100`)
-          .then(r => (r.ok ? r.json() : []))
-      )
-    );
-
-    for (const data of responses) {
-      if (!Array.isArray(data) || data.length === 0) {
-        done = true;
-        break;
-      }
-
-      for (const item of data) {
-        if (!item?.name) continue;
-
-        const match = item.name.match(/^\/(\d+)([.-])/);
-        if (!match) continue;
-
-        const id = match[1];
-
-        if (!combinedMap[id]) {
-          combinedMap[id] = {
-            hits: 0,
-            bandwidth: 0
-          };
+function separateXY(list, xKey, yKey, iterations){
+  var cell=130;
+  for (var iter=0; iter<iterations; iter++){
+    var grid={};
+    for (var gi=0; gi<list.length; gi++){
+      var gp=list[gi];
+      var key=(Math.floor(gp[xKey]/cell))+','+(Math.floor(gp[yKey]/cell));
+      (grid[key]=grid[key]||[]).push(gi);
+    }
+    for (var i=0;i<list.length;i++){
+      var a=list[i];
+      var gx=Math.floor(a[xKey]/cell), gy=Math.floor(a[yKey]/cell);
+      for (var dxc=-1; dxc<=1; dxc++){
+        for (var dyc=-1; dyc<=1; dyc++){
+          var bucket=grid[(gx+dxc)+','+(gy+dyc)];
+          if (!bucket) continue;
+          for (var bi=0; bi<bucket.length; bi++){
+            var j=bucket[bi];
+            if (j<=i) continue;
+            var b=list[j];
+            var dx=b[xKey]-a[xKey], dy=b[yKey]-a[yKey];
+            var dist=Math.sqrt(dx*dx+dy*dy);
+            var min=(a.half+b.half)*1.85+24;
+            if (dist<min){
+              if (dist<0.001){ dx=(rnd(i*97+j)-0.5); dy=(rnd(i*53+j*7)-0.5); dist=0.01; }
+              var push=(min-dist)/dist*0.5;
+              a[xKey]-=dx*push; a[yKey]-=dy*push;
+              b[xKey]+=dx*push; b[yKey]+=dy*push;
+            }
+          }
         }
-
-        combinedMap[id].hits += item.hits?.total ?? 0;
-        combinedMap[id].bandwidth += item.bandwidth?.total ?? 0;
       }
     }
+  }
+}
 
-    page += PAGE_BATCH;
+function armPos(arm, t, RMAX, TWIST, jr, ja){
+  var r0=90+RMAX*Math.sqrt(t);
+  var a0=arm*(Math.PI*2/ARMS)+t*TWIST*Math.PI*2;
+  var r=Math.max(40,r0+(jr||0)), a=a0+(ja||0);
+  return [Math.cos(a)*r, Math.sin(a)*r*0.55];
+}
+
+function boundsOf(list, keyx, keyy){
+  var minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  list.forEach(function(p){
+    minX=Math.min(minX,p[keyx]-p.half); maxX=Math.max(maxX,p[keyx]+p.half);
+    minY=Math.min(minY,p[keyy]-p.half); maxY=Math.max(maxY,p[keyy]+p.half);
+  });
+  return {minX:minX,maxX:maxX,minY:minY,maxY:maxY};
+}
+
+function fitToBounds(b, pad){
+  pad = pad||160;
+  var w=(b.maxX-b.minX)+pad*2, h=(b.maxY-b.minY)+pad*2;
+  var scale=Math.max(0.02, Math.min(6, Math.min(W/w, H/h)));
+  return { x:(b.minX+b.maxX)/2, y:(b.minY+b.maxY)/2, scale:scale };
+}
+
+function buildPlanets(games){
+  var N=games.length;
+  var TWIST=2.4;
+  var RMAX = 75*Math.sqrt(N)*1.15;
+
+  var tagSet={};
+  planets = games.map(function(g,i){
+    var t=i/N, arm=i%ARMS;
+    var jr=(rnd(i*3+1)-0.5)*RMAX*0.01, ja=(rnd(i*7+2)-0.5)*0.45;
+    var pos=armPos(arm, t, RMAX, TWIST, jr, ja);
+    var edge=42+rnd(i*17+9)*14;
+    var tags=g.special||[];
+    tags.forEach(function(tg){ tagSet[tg]=true; });
+    var direct=g.cover.replace('{COVER_URL}', COVER_BASE);
+    var proxied="https://wsrv.nl/?url="+encodeURIComponent(direct)+"&w=180&h=180&fit=cover&output=webp&q=78";
+    return {
+      id:g.id, name:g.name, directUrl:direct, proxyUrl:proxied,
+      x:pos[0], y:pos[1], half:edge/2, arm:arm, tags:tags, phase:rnd(i*29+3)*Math.PI*2,
+      alpha:1, targetAlpha:1, glow:0, targetGlow:0, sel:0
+    };
+  });
+  separateXY(planets, 'x', 'y', 24);
+  planets.forEach(function(p){ p.homeX=p.x; p.homeY=p.y; p.tx=p.x; p.ty=p.y; });
+
+  galaxyBounds=boundsOf(planets,'homeX','homeY');
+  activeBounds=galaxyBounds;
+  fullView=fitToBounds(galaxyBounds, 220);
+  camTarget.x=fullView.x; camTarget.y=fullView.y; camTarget.scale=fullView.scale;
+  camDisplay.x=fullView.x; camDisplay.y=fullView.y; camDisplay.scale=fullView.scale;
+
+  buildFilterPanel(Object.keys(tagSet).sort());
+}
+
+function layoutScatter(matches){
+  var n=matches.length;
+  var RMAX = 60*Math.sqrt(n)*1.1;
+  var cx=0,cy=0; matches.forEach(function(p){ cx+=p.homeX; cy+=p.homeY; }); cx/=n; cy/=n;
+  matches.forEach(function(p,i){
+    var t=i/n, arm=i%ARMS;
+    var jr=(rnd(i*3+1)-0.5)*RMAX*0.2, ja=(rnd(i*7+2)-0.5)*0.6;
+    var pos=armPos(arm, t, RMAX, 2.1, jr, ja);
+    p.tx=cx+pos[0]; p.ty=cy+pos[1];
+  });
+  separateXY(matches, 'tx', 'ty', 18);
+  return boundsOf(matches,'tx','ty');
+}
+
+function buildFilterPanel(tags){
+  filterPanel.innerHTML='';
+  var all=document.createElement('div');
+  all.className='chip active'; all.textContent='All'; all.dataset.tag='';
+  all.onclick=function(){ setTagFilter(null); };
+  filterPanel.appendChild(all);
+  tags.forEach(function(tag){
+    var c=document.createElement('div');
+    c.className='chip'; c.textContent=tag; c.dataset.tag=tag;
+    c.onclick=function(){ setTagFilter(tag); };
+    filterPanel.appendChild(c);
+  });
+}
+
+var activeTag=null;
+function setTagFilter(tag){
+  activeTag=tag;
+  Array.prototype.forEach.call(filterPanel.children, function(c){
+    c.classList.toggle('active', (c.dataset.tag||null)===tag);
+  });
+  filterBtn.classList.toggle('on', !!tag);
+  if (!tag){
+    planets.forEach(function(p){ p.tx=p.homeX; p.ty=p.homeY; });
+    activeBounds=galaxyBounds;
+    camTarget.x=fullView.x; camTarget.y=fullView.y; camTarget.scale=fullView.scale;
+    if (selected && !tagOk(selected)) selected=null;
+    return;
+  }
+  var matches=planets.filter(function(p){ return p.tags.indexOf(tag)!==-1; });
+  if (!matches.length) return;
+  var bounds=layoutScatter(matches);
+  activeBounds=bounds;
+  var f=fitToBounds(bounds, 120);
+  camTarget.x=f.x; camTarget.y=f.y; camTarget.scale=f.scale;
+  if (selected && !tagOk(selected)) selected=null;
+}
+function tagOk(p){ return !activeTag || p.tags.indexOf(activeTag)!==-1; }
+
+filterBtn.addEventListener('click', function(){ filterPanel.classList.toggle('open'); });
+document.addEventListener('click', function(e){
+  if (!e.target.closest('.filter-wrap')) filterPanel.classList.remove('open');
+  if (!e.target.closest('.search-wrap')) results.style.display='none';
+});
+
+function loadAllImages(list,onProgress,onDone){
+  var active=0, CONC=3, queue=list.slice(), total=list.length, completed=0, doneCalled=false, failures=0, successes=0;
+  function makeThumb(p,img){
+    try { var s=144,c=document.createElement('canvas');c.width=c.height=s;var x=c.getContext('2d');
+      x.beginPath();if(x.roundRect)x.roundRect(0,0,s,s,14);else x.rect(0,0,s,s);x.clip();x.drawImage(img,0,0,s,s);p.thumb=c;
+    } catch(err){}
+  }
+  function finish(p){
+    if(p._loadDone)return;
+    p._loadDone=true;p.loading=false;p.imageAttempted=true;active--;completed++;
+    if(p.thumb)successes++;else failures++;
+    if(onProgress)onProgress(completed,total,successes,failures,p);
+    pump();
+  }
+  function load(p,url,fallback){
+    var img=new Image();
+    img.onload=function(){
+      img.onload=null;img.onerror=null;
+      if(img.naturalWidth>0)makeThumb(p,img);
+      if(!p.thumb&&fallback){var next=fallback;fallback=null;img.src='';load(p,next,null);return;}
+      img.src='';finish(p);
+    };
+    img.onerror=function(){
+      img.onload=null;img.onerror=null;img.src='';
+      if(fallback){var next=fallback;fallback=null;load(p,next,null);return;}
+      finish(p);
+    };
+    img.src=url;
+  }
+  function pump(){
+    while(queue.length&&active<CONC){var p=queue.shift();if(p.thumb||p.loading){completed++;continue;}p.loading=true;active++;load(p,p.proxyUrl,p.directUrl);}
+    if(completed>=total&&active===0&&queue.length===0&&!doneCalled){doneCalled=true;if(onDone)onDone();}
+  }
+  window.getGalaxyImageStats=function(){return {active:active,queued:queue.length};};
+  if(onProgress)onProgress(0,total,0,0);
+  pump();
+}
+
+function reveal(){
+  statusEl.classList.add('hidden');
+  canvas.classList.add('ready');
+  canvas.style.pointerEvents='auto';
+  frame();
+}
+window.addEventListener('pageshow',function(event){
+  if(event.persisted){
+    document.body.classList.remove('page-leaving');
+    statusEl.classList.add('hidden');
+    canvas.classList.add('ready');
+    canvas.style.pointerEvents='auto';
+  }
+});
+
+async function loadGames(){
+  try {
+    var res = await fetch(ZONES_URL);
+    if (!res.ok) throw new Error('http '+res.status);
+    var json = await res.json();
+    var games = json.filter(function(z){ return z.id !== -1 && z.cover; });
+    if (!games.length) throw new Error('empty');
+    buildPlanets(games);
+    bootStage.textContent='Found '+planets.length+' systems. Reading image files...';
+    loadAllImages(planets,function(done,total,loaded,failed,planet){
+      done=Math.min(done,total);
+      if(planet){
+        if(done===1)bootImageList.innerHTML="";
+        var row=document.createElement('li');
+        row.className='boot-entry'+(planet.thumb?'':' failed');
+        row.textContent=String(done)+' / '+total+'  '+planet.name;
+        bootImageList.appendChild(row);
+        if(row.offsetHeight>bootImageList.clientHeight){row.remove();}
+        while(bootImageList.scrollHeight>bootImageList.clientHeight&&bootImageList.children.length>1)bootImageList.removeChild(bootImageList.firstChild);
+      }
+      bootCount.textContent=loaded+' loaded · '+failed+' unavailable';
+      var pct=total?Math.floor(done/total*100):100;
+      bootStage.textContent=done<total?'Decoding image '+done+' of '+total+'... ('+pct+'%)':(failed?'Finished: '+loaded+' covers decoded, '+failed+' unavailable. ('+pct+'%)':'Successfully decoded all covers. ('+pct+'%)');
+    },function(){var wait=Math.max(0,2000-(performance.now()-bootStartedAt));setTimeout(reveal,wait);});
+  } catch (e) {
+    bootStage.textContent='System startup failed.';
+    errbox.style.display='block';
+    errbox.textContent='This page fetches the game list and covers fresh on every visit — it needs to run on a real host (not a sandboxed preview) with normal network access to do that.';
+  }
+}
+
+var camTarget={x:0,y:0,scale:0.26};
+var camDisplay={x:0,y:0,scale:0.26};
+var SMOOTH_POS=0.16, SMOOTH_SCALE=0.09, POS_SMOOTH=0.08;
+var tween=null;
+loadGames();
+
+var _wts=[0,0];
+function worldToScreen(x,y){ _wts[0]=(x-camDisplay.x)*camDisplay.scale+W/2; _wts[1]=(y-camDisplay.y)*camDisplay.scale+H/2; return _wts; }
+var _stw=[0,0];
+function screenToWorld(sx,sy){ _stw[0]=(sx-W/2)/camDisplay.scale+camDisplay.x; _stw[1]=(sy-H/2)/camDisplay.scale+camDisplay.y; return _stw; }
+
+function clampCamera(){
+  var b=activeBounds||galaxyBounds;
+  if (!b) return;
+  var bw=b.maxX-b.minX, bh=b.maxY-b.minY;
+  var margin=Math.max(300, Math.max(bw,bh)*0.22);
+  camTarget.x=Math.max(b.minX-margin, Math.min(b.maxX+margin, camTarget.x));
+  camTarget.y=Math.max(b.minY-margin, Math.min(b.maxY+margin, camTarget.y));
+  var minScale=Math.min(W/(bw+320), H/(bh+320))*0.5;
+  camTarget.scale=Math.max(minScale, Math.min(6, camTarget.scale));
+}
+
+var hovered=null, selected=null, matchSet=null;
+function findAt(sx,sy){
+  var w=screenToWorld(sx,sy), wx=w[0], wy=w[1];
+  var best=null, bestD=1e18, pad=6/camDisplay.scale;
+  for (var i=0;i<planets.length;i++){
+    var p=planets[i];
+    if (!tagOk(p)) continue;
+    var dx=wx-p.x, dy=wy-p.y, d=dx*dx+dy*dy, rr=p.half+pad;
+    if (d<rr*rr && d<bestD){ bestD=d; best=p; }
+  }
+  return best;
+}
+
+var dragging=false, lastX=0, lastY=0, moveAmt=0;
+canvas.addEventListener('mousedown', function(e){
+  if (e.button!==0) return;
+  dragging=true; lastX=e.clientX; lastY=e.clientY; moveAmt=0;
+  canvas.classList.add('dragging');
+  tween=null;
+  camTarget.x=camDisplay.x; camTarget.y=camDisplay.y; camTarget.scale=camDisplay.scale;
+});
+var mouseX=null, mouseY=null, mouseMoved=false;
+window.addEventListener('mousemove', function(e){
+  mouseX=e.clientX; mouseY=e.clientY; mouseMoved=true;
+  if (dragging){
+    var dx=e.clientX-lastX, dy=e.clientY-lastY;
+    camTarget.x-=dx/camDisplay.scale; camTarget.y-=dy/camDisplay.scale;
+    lastX=e.clientX; lastY=e.clientY; moveAmt+=Math.abs(dx)+Math.abs(dy);
+  }
+});
+window.addEventListener('mouseup', function(e){
+  if (dragging){
+    dragging=false; canvas.classList.remove('dragging');
+    if (moveAmt<6){
+      var p=findAt(e.clientX,e.clientY);
+      if (p) focusPlanet(p); else selected=null;
+    }
+  }
+});
+canvas.addEventListener('wheel', function(e){
+  e.preventDefault();
+  var zoomingOut = e.deltaY>0;
+  if (zoomingOut && selected) selected=null;
+  tween=null;
+  var w=[(e.clientX-W/2)/camTarget.scale+camTarget.x, (e.clientY-H/2)/camTarget.scale+camTarget.y];
+  var factor=Math.exp(-e.deltaY*0.0009);
+  camTarget.scale=camTarget.scale*factor;
+  camTarget.x=w[0]-(e.clientX-W/2)/camTarget.scale;
+  camTarget.y=w[1]-(e.clientY-H/2)/camTarget.scale;
+}, {passive:false});
+
+var playerOverlay=document.getElementById('playerOverlay');
+var playerPageFrame=document.getElementById('playerPageFrame');
+var playerHistoryEntry=false;
+function showPlayer(id,pushHistory){
+  var url='player.html?id='+encodeURIComponent(id)+'&from=index&embedded=1';
+  if(pushHistory!==false){
+    var state={gnMathPlayer:true,gameId:String(id)};
+    var historyUrl=location.protocol==='file:'?location.href:url;
+    try{history.pushState(state,'',historyUrl);playerHistoryEntry=true;}
+    catch(e){try{location.hash='gnmath-player-'+encodeURIComponent(id);playerHistoryEntry=true;}catch(e2){playerHistoryEntry=false;}}
+  }else playerHistoryEntry=true;
+  playerOverlayOpen=true;
+  playerOverlay.classList.add('open');
+  playerOverlay.setAttribute('aria-hidden','false');
+  playerPageFrame.src=url;
+}
+function hidePlayer(){
+  if(!playerOverlayOpen)return;
+  playerOverlayOpen=false;
+  playerHistoryEntry=false;
+  playerOverlay.classList.remove('open');
+  playerOverlay.setAttribute('aria-hidden','true');
+  requestAnimationFrame(frame);
+  setTimeout(function(){if(!playerOverlayOpen)playerPageFrame.src='about:blank';},320);
+}
+function returnToLibrary(){
+  var closeHistoryEntry=playerHistoryEntry;
+  if(closeHistoryEntry){
+    try{history.replaceState(null,'',new URL('index.html',location.href).href);}catch(e){}
+  }
+  hidePlayer();
+  if(closeHistoryEntry)history.back();
+}
+window.addEventListener('popstate',function(event){
+  if(event.state&&event.state.gnMathPlayer)showPlayer(event.state.gameId,false);
+  else{playerHistoryEntry=false;hidePlayer();}
+});
+window.addEventListener('hashchange',function(){
+  if(location.protocol!=='file:')return;
+  var match=location.hash.match(/^#gnmath-player-(.+)$/);
+  if(match){if(!playerOverlayOpen)showPlayer(decodeURIComponent(match[1]),false);}
+  else if(playerOverlayOpen){playerHistoryEntry=false;hidePlayer();}
+});
+window.addEventListener('message',function(event){
+  if(event.source!==playerPageFrame.contentWindow||!event.data||event.data.type!=='GN_MATH_CLOSE_PLAYER')return;
+  returnToLibrary();
+});
+function playGame(p){showPlayer(p.id,true);}
+playBtn.addEventListener('click', function(){ if (selected) playGame(selected); });
+
+function easeOutCubic(x){ return 1-Math.pow(1-x,3); }
+function focusPlanet(p){
+  var s0=worldToScreen(p.x,p.y);
+  tween={ startSX:s0[0], startSY:s0[1], fromScale:camDisplay.scale, toScale:2.4,
+          px:p.x, py:p.y, t0:performance.now(), dur:1500 };
+  selected=p;
+}
+
+var search=document.getElementById('search'), results=document.getElementById('results'),
+    countEl=document.getElementById('count'), clearBtn=document.getElementById('clearBtn'), randomBtn=document.getElementById('randomBtn');
+function handleSearchInput(){
+  var q=search.value.trim().toLowerCase();
+  clearBtn.classList.toggle('show', search.value.length>0);
+  if (!q){ matchSet=null; results.style.display='none'; countEl.textContent=''; return; }
+  var matches=planets.filter(function(p){ return p.name.toLowerCase().indexOf(q)!==-1; });
+  matchSet=new Set(matches.map(function(p){ return p.id; }));
+  countEl.textContent=matches.length+(matches.length===1?' system':' systems');
+  results.innerHTML='';
+  matches.slice(0,30).forEach(function(p){
+    var d=document.createElement('div');
+    d.textContent=p.name;
+    d.onclick=function(){ focusPlanet(p); results.style.display='none'; };
+    results.appendChild(d);
+  });
+  results.style.display=matches.length?'block':'none';
+}
+search.addEventListener('input', handleSearchInput);
+search.addEventListener('keydown', function(e){
+  if (e.key==='Enter'){
+    var first=null;
+    for (var i=0;i<planets.length;i++){ if (matchSet && matchSet.has(planets[i].id)){ first=planets[i]; break; } }
+    if (first){ focusPlanet(first); results.style.display='none'; }
+  }
+});
+clearBtn.addEventListener('click', function(){
+  search.value=''; handleSearchInput(); search.focus();
+});
+randomBtn.addEventListener('click',function(){
+  var candidates=planets.filter(function(p){return tagOk(p)&&(!matchSet||matchSet.has(p.id));});
+  if(!candidates.length&&planets.length){
+    search.value='';
+    handleSearchInput();
+    setTagFilter(null);
+    candidates=planets.slice();
+  }
+  if(!candidates.length)return;
+  results.style.display='none';
+  filterPanel.classList.remove('open');
+  hovered=null;
+  selected=null;
+  focusPlanet(candidates[Math.floor(Math.random()*candidates.length)]);
+});
+
+function roundedSquare(cx,cy,half){
+  var r=half*(16/90);
+  if (ctx.roundRect){ ctx.beginPath(); ctx.roundRect(cx-half,cy-half,half*2,half*2,r); }
+  else { ctx.beginPath(); ctx.rect(cx-half,cy-half,half*2,half*2); }
+}
+function pillRect(cx,cy,w,h){
+  var r=h/2;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(cx-w/2,cy-h/2,w,h,r);
+  else ctx.rect(cx-w/2,cy-h/2,w,h);
+}
+
+var playerOverlayOpen=false;
+var t=0, lastFrameAt=0, frameTimes=[], renderTimes=[], lowQuality=false, qualityCooldown=0;
+var visiblePlanets=0, debugLastUpdate=0;
+var labelQueue=[];
+var playBtnState={left:null, top:null, shown:false};
+document.addEventListener('keydown',function(e){if(e.key==='F8'){e.preventDefault();debugOpen=!debugOpen;debugPanel.classList.toggle('open',debugOpen);debugLastUpdate=0;}else if(e.key==='Escape'&&debugOpen){debugOpen=false;debugPanel.classList.remove('open');}});
+
+function frame(now){
+  now = now || performance.now();
+  var renderStart=performance.now();
+  visiblePlanets=0;
+  var dt = lastFrameAt ? Math.min((now-lastFrameAt)/1000, 0.1) : 0.016;
+  lastFrameAt = now;
+  t += dt;
+
+  frameTimes.push(dt*1000);
+  if (frameTimes.length>60) frameTimes.shift();
+
+  if (!dragging && mouseMoved){
+    hovered=findAt(mouseX,mouseY);
+    canvas.style.cursor=hovered?'pointer':'grab';
+    mouseMoved=false;
   }
 
-  _allStatsCache = combinedMap;
-  return combinedMap;
+  var step=dt*60;
+  var posK=1-Math.pow(1-SMOOTH_POS, step);
+  var scaleK=1-Math.pow(1-SMOOTH_SCALE, step);
+  var tileK=1-Math.pow(1-POS_SMOOTH, step);
+  var alphaK=1-Math.pow(1-0.12, step);
+  var glowK=1-Math.pow(1-0.15, step);
+  var selK=1-Math.pow(1-0.16, step);
+
+  if (tween){
+    var el=now-tween.t0, f=Math.min(1, el/tween.dur), e=easeOutCubic(f);
+    var curScale=tween.fromScale+(tween.toScale-tween.fromScale)*e;
+    var curSX=tween.startSX+(W/2-tween.startSX)*e;
+    var curSY=tween.startSY+(H/2-tween.startSY)*e;
+    camDisplay.scale=curScale;
+    camDisplay.x=tween.px-(curSX-W/2)/curScale;
+    camDisplay.y=tween.py-(curSY-H/2)/curScale;
+    camTarget.x=camDisplay.x; camTarget.y=camDisplay.y; camTarget.scale=camDisplay.scale;
+    if (f>=1) tween=null;
+  } else {
+    clampCamera();
+    camDisplay.x += (camTarget.x-camDisplay.x)*posK;
+    camDisplay.y += (camTarget.y-camDisplay.y)*posK;
+    camDisplay.scale += (camTarget.scale-camDisplay.scale)*scaleK;
+  }
+
+  ctx.clearRect(0,0,W,H);
+  labelQueue.length=0;
+
+  for (var pi=0;pi<planets.length;pi++){
+    var p=planets[pi];
+
+    var sp=worldToScreen(p.x,p.y), sx=sp[0], sy=sp[1];
+    var cullR=p.half*Math.max(camDisplay.scale,0.3)*1.4+70;
+    var onScreen = sx>-cullR && sx<W+cullR && sy>-cullR && sy<H+cullR;
+
+    if (Math.abs(p.tx-p.x)>0.05 || Math.abs(p.ty-p.y)>0.05){
+      p.x += (p.tx-p.x)*tileK; p.y += (p.ty-p.y)*tileK;
+    }
+    if (!onScreen) continue;
+    visiblePlanets++;
+
+
+    var isMatch=matchSet && matchSet.has(p.id);
+    var isHover=hovered===p, isSel=selected===p;
+    var visibleByTag=tagOk(p);
+    p.targetAlpha = !visibleByTag ? 0 : ((matchSet && !isMatch) ? 0.1 : 1);
+    p.targetGlow = (isHover||isMatch) ? 1 : 0;
+    var selTarget = isSel?1:0;
+    p.alpha = Math.abs(p.targetAlpha-p.alpha)<0.003 ? p.targetAlpha : p.alpha+(p.targetAlpha-p.alpha)*alphaK;
+    p.glow  = Math.abs(p.targetGlow-p.glow)<0.003  ? p.targetGlow  : p.glow +(p.targetGlow-p.glow)*glowK;
+    p.sel   = Math.abs(selTarget-p.sel)<0.003       ? selTarget     : p.sel  +(selTarget-p.sel)*selK;
+    if (p.alpha<0.01 && !visibleByTag) continue;
+
+    var baseR=p.half*Math.max(camDisplay.scale,0.3);
+    var sr=baseR*(1+p.sel*0.28);
+
+    var pulse=1+0.05*Math.sin(t*1.1+p.phase);
+    var gsr=Math.min(sr,38);
+    var highlighted = isHover||isSel||isMatch;
+    if (highlighted){
+      var boost=1+p.glow*0.4+p.sel*0.6;
+      var outer=gsr*4.4*pulse*boost, inner=gsr*2.0*pulse*boost;
+      ctx.globalAlpha=p.alpha*0.5;
+      ctx.drawImage(glowSprites[p.arm], sx-outer/2, sy-outer/2, outer, outer);
+      ctx.globalAlpha=p.alpha*(0.85+p.glow*0.15+p.sel*0.15);
+      ctx.drawImage(glowSprites[p.arm], sx-inner/2, sy-inner/2, inner, inner);
+    } else if (!lowQuality){
+      var g1=gsr*3.6*pulse;
+      ctx.globalAlpha=p.alpha*0.38;
+      ctx.drawImage(glowSprites[p.arm], sx-g1/2, sy-g1/2, g1, g1);
+    }
+
+    ctx.globalAlpha=p.alpha;
+    if (p.thumb){
+      ctx.drawImage(p.thumb, sx-sr, sy-sr, sr*2, sr*2);
+    } else {
+      ctx.fillStyle='#1c1b2c'; ctx.fillRect(sx-sr,sy-sr,sr*2,sr*2);
+    }
+
+    if (p.glow>0.02 || p.sel>0.02){
+      var ringA=Math.max(p.glow, p.sel);
+      ctx.globalAlpha=p.alpha*ringA;
+      ctx.strokeStyle = p.sel>0.3 ? '#ffb37c' : (isMatch ? '#ffb37c' : '#7cf7ff');
+      ctx.lineWidth=2.2;
+      roundedSquare(sx,sy,sr+3); ctx.stroke();
+    }
+
+    if (isHover || isSel){
+      labelQueue.push({sx:sx, sy:sy, sr:sr, alpha:p.alpha, name:p.name});
+    }
+  }
+  ctx.globalAlpha=1;
+
+  if (labelQueue.length){
+    ctx.font='600 11px "IBM Plex Mono",monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    for (var li=0; li<labelQueue.length; li++){
+      var L=labelQueue[li];
+      var tw=ctx.measureText(L.name).width, pw=tw+18, ph=20;
+      var cy=L.sy-L.sr-14;
+      ctx.globalAlpha=L.alpha*0.9;
+      ctx.fillStyle='rgba(6,5,14,0.85)';
+      pillRect(L.sx,cy,pw,ph); ctx.fill();
+      ctx.globalAlpha=L.alpha;
+      ctx.fillStyle='#f5f4fb';
+      ctx.fillText(L.name, L.sx, cy+0.5);
+    }
+    ctx.globalAlpha=1;
+  }
+
+  if (selected){
+    var sp2=worldToScreen(selected.x,selected.y);
+    var baseR2=selected.half*Math.max(camDisplay.scale,0.3)*(1+selected.sel*0.28);
+    var nl=Math.round(sp2[0])+'px', nt=Math.round(sp2[1]+baseR2+12)+'px';
+    if (!playBtnState.shown){ playBtn.style.display='block'; playBtnState.shown=true; }
+    if (playBtnState.left!==nl){ playBtn.style.left=nl; playBtnState.left=nl; }
+    if (playBtnState.top!==nt){ playBtn.style.top=nt; playBtnState.top=nt; }
+  } else if (playBtnState.shown){
+    playBtn.style.display='none'; playBtnState.shown=false;
+  }
+
+  var renderMs=performance.now()-renderStart;
+  renderTimes.push(renderMs); if(renderTimes.length>30)renderTimes.shift();
+  if(renderTimes.length>=12){
+    var renderSum=0; for(var ri=0;ri<renderTimes.length;ri++)renderSum+=renderTimes[ri];
+    var avgRender=renderSum/renderTimes.length;
+    if(!lowQuality && avgRender>14){lowQuality=true;qualityCooldown=0;dprCap=1;resize();}
+    else if(lowQuality && avgRender<5){qualityCooldown++;if(qualityCooldown>120){lowQuality=false;qualityCooldown=0;dprCap=1.5;resize();}}
+    else if(lowQuality)qualityCooldown=0;
+  }
+  if(debugOpen && now-debugLastUpdate>250){
+    debugLastUpdate=now;
+    var totalFrame=0; for(var fti=0;fti<frameTimes.length;fti++)totalFrame+=frameTimes[fti];
+    var fps=frameTimes.length?1000/(totalFrame/frameTimes.length):0;
+    var loaded=0; for(var dpi=0;dpi<planets.length;dpi++)if(planets[dpi].thumb)loaded++;
+    var qs=window.getGalaxyImageStats?window.getGalaxyImageStats():{active:0,queued:0};
+    debugPanel.textContent='GN-MATH DIAGNOSTICS · F8\nFPS             '+fps.toFixed(1)+'\nFrame interval  '+(frameTimes.length?(totalFrame/frameTimes.length).toFixed(1):'0.0')+' ms\nRender work     '+renderMs.toFixed(2)+' ms\nVisible         '+visiblePlanets+' / '+planets.length+'\nCovers cached   '+loaded+' / '+planets.length+'\nImage requests  '+qs.active+' active, '+qs.queued+' queued\nCanvas          '+canvas.width+' × '+canvas.height+' @ '+DPR.toFixed(2)+'×\nQuality         '+(lowQuality?'reduced':'full')+' · '+(matchSet?'search':'all')+(activeTag?' · filter':'');
+  }
+  if(!playerOverlayOpen)requestAnimationFrame(frame);
+}
+})();
+
+}
+if(document.getElementById('gameFrame')){
+(function(){
+  'use strict';
+  var ZONES_URL='https://raw.githubusercontent.com/freebuisness/assets/main/zones.json';
+  var HTML_BASE='https://raw.githack.com/freebuisness/html/main';
+  var params=new URLSearchParams(location.search), id=params.get('id');
+  var frame=document.getElementById('gameFrame'), wrap=document.getElementById('frameWrap');
+  var loading=document.getElementById('frameLoading'), detail=document.getElementById('loadingDetail');
+  var errorCard=document.getElementById('errorCard'), gameName=document.getElementById('gameName');
+  var gameAuthor=document.getElementById('gameAuthor'), connection=document.getElementById('connectionStatus');
+  var gameIdLabel=document.getElementById('gameIdLabel'), launchedUrl='';
+  function libraryUrl(){return 'index.html';}
+  function goBack(){document.body.classList.add('player-leaving');setTimeout(function(){if(params.get('embedded')==='1'&&window.parent!==window){window.parent.postMessage({type:'GN_MATH_CLOSE_PLAYER'},location.origin==='null'?'*':location.origin);return;}location.replace(libraryUrl());},170);}
+  function fail(title,message){loading.classList.add('hidden');wrap.classList.remove('ready');errorCard.hidden=false;document.getElementById('errorTitle').textContent=title;document.getElementById('errorMessage').textContent=message;connection.textContent='STARTUP FAILED';}
+  function resolveUrl(value){return String(value||'').replace(/\{HTML_URL\}/g,HTML_BASE).replace(/\{COVER_URL\}/g,'https://raw.githubusercontent.com/freebuisness/covers/main');}
+  document.getElementById('backButton').addEventListener('click',goBack);
+  document.getElementById('errorBackButton').addEventListener('click',goBack);
+  document.getElementById('reloadButton').addEventListener('click',function(){if(launchedUrl){loading.classList.remove('hidden');wrap.classList.remove('ready');detail.textContent='Reloading game…';frame.src=launchedUrl;}});
+  function focusGameInput(){try{frame.focus({preventScroll:true});}catch(e){frame.focus();}try{frame.contentWindow.focus();}catch(e){}}
+  function fullscreen(){var target=wrap;if(document.fullscreenElement){document.exitFullscreen&&document.exitFullscreen();return;}if(target.requestFullscreen)target.requestFullscreen().catch(function(){});}
+  document.getElementById('fullscreenButton').addEventListener('click',fullscreen);
+  document.getElementById('newTabButton').addEventListener('click',function(){if(launchedUrl)window.open(launchedUrl,'_blank','noopener');});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&document.fullscreenElement)document.exitFullscreen&&document.exitFullscreen();if(e.key.toLowerCase()==='f'&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName))fullscreen();});
+  frame.addEventListener('load',function(){if(!launchedUrl)return;loading.classList.add('hidden');wrap.classList.add('ready');connection.textContent='GAME CONNECTED';focusGameInput();});
+  frame.addEventListener('error',function(){fail('Game failed to load','The game host could not be reached. Check your connection, then try reloading.');});
+  gameIdLabel.textContent='GN-MATH / '+(id||'—');
+  if(id===null||id.trim()===''){location.replace('index.html');return;}
+  fetch(ZONES_URL).then(function(response){if(!response.ok)throw new Error('The game list could not be downloaded.');return response.json();}).then(function(games){
+    var game=games.find(function(item){return String(item.id)===String(id);});
+    if(!game||!game.url)throw new Error('This game could not be found in the library.');
+    gameName.textContent=game.name||'Untitled game';
+    gameAuthor.textContent=game.author?'BY '+game.author:'GN-MATH · HTML5 PLAYER';
+    document.title=(game.name||'Game')+' · GN-MATH Player';
+    launchedUrl=resolveUrl(game.url);
+    if(!/^https?:\/\//i.test(launchedUrl))throw new Error('This game has an invalid launch address.');
+    detail.textContent='Opening '+(new URL(launchedUrl)).hostname+'…';
+    frame.src=launchedUrl;
+    connection.textContent='CONNECTING';
+  }).catch(function(error){fail('Unable to launch game',error.message||'The game list could not be loaded.');});
+})();
+
 }
 
-async function getStats(id) {
-  id = String(id);
-  const allStats = await getAllStats();
 
-  return allStats[id]?.hits ?? 0;
-}
 
-function showZoneInfo() {
-    let id = Number(document.getElementById('zoneId').textContent);
-    document.getElementById('popupTitle').textContent = "Info";
-    const popupBody = document.getElementById('popupBody');
-    popupBody.innerHTML = `<p>Loading...</p>`
-    popupBody.contentEditable = false;
-    document.getElementById('popupOverlay').style.display = "flex";
-    fetch(`https://api.github.com/repos/freebuisness/html/commits?path=${id}.html`).then(res => res.json()).then(async json => {
-        let stats = await getStats (id);
-        idjson = zones.filter(a=>a.id===id)[0]
-        document.getElementById('popupTitle').textContent = `${idjson.name} Info`;
-        const date = new Date(json.at(-1).commit.author.date);
-        let formatteddate = new Intl.DateTimeFormat("en-US", {
-  month: "long",
-  day: "numeric",
-  year: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-  hour12: true
-}).format(date);
-        popupBody.innerHTML = `
-        <p>
-        <b>Id</b>: ${id}<br>
-        <b>Name</b>: ${idjson.name}<br>
-        ${idjson.author?`<b>Game Author</b>: ${idjson.author}<br>`:""}
-        ${idjson.authorLink?`<b>Game Author Link</b>: <a style="color:#FFFF00;" href=${idjson.authorLink}>${idjson.authorLink}</a><br>`:""}
-        ${idjson.special?`<b>Tags</b>: ${idjson.special}<br>`:""}
-        <b>Gn-Math Adder</b>: ${json.at(-1).commit.author.name}<br>
-        <b>Date Added</b>: ${formatteddate}<br>
-        <b>Times Played (Globally)</b>: ${Number(stats).toLocaleString("en-US")}
-        </p>`;
-    })
-}
 
-function closePopup() {
-    document.getElementById('popupOverlay').style.display = "none";
-}
-listZones();
 
-HTMLCanvasElement.prototype.toDataURL = function (...args) {
-    return "";
-};
+
+
+
+
+
+
+
+
+
+
